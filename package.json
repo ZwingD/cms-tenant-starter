@@ -1,0 +1,33 @@
+{
+  "name": "cms-tenant-starter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Starter Next.js 15 site for tenants consuming Zwingd CMS — deploys to Vercel with three env vars.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zwingd/cms-revalidate-nextjs": "github:ZwingD/cms-revalidate-nextjs#4402cd1",
+    "next": "^15.1.11",
+    "react": "^19.0.4",
+    "react-dom": "^19.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.18.0",
+    "eslint-config-next": "^15.1.11",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  }
+}
