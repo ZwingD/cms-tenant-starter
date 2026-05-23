@@ -5,7 +5,7 @@
  *
  * The CMS branch attaches `next: { tags: [...] }` to every fetch — that's
  * what makes tag-based revalidation work end-to-end. Without those tags,
- * the dual-tag handler in @zwingd/cms-revalidate-nextjs has nothing to
+ * the dual-tag handler in @zwingd-ce/cms-revalidate-nextjs has nothing to
  * invalidate (this was the L-10 race we resolved during the feezy.one
  * cutover — see the package README for the failure-mode table).
  */

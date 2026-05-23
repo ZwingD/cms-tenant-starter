@@ -8,9 +8,9 @@ importers:
 
   .:
     dependencies:
-      '@zwingd/cms-revalidate-nextjs':
-        specifier: github:ZwingD/cms-revalidate-nextjs#4402cd1
-        version: https://codeload.github.com/ZwingD/cms-revalidate-nextjs/tar.gz/4402cd1(next@15.5.18(react-dom@19.2.6(react@19.2.6))(react@19.2.6))
+      '@zwingd-ce/cms-revalidate-nextjs':
+        specifier: github:ZwingD/cms-revalidate-nextjs#7fd8d22
+        version: https://codeload.github.com/ZwingD/cms-revalidate-nextjs/tar.gz/7fd8d22(next@15.5.18(react-dom@19.2.6(react@19.2.6))(react@19.2.6))
       next:
         specifier: ^15.1.11
         version: 15.5.18(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -549,9 +549,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@zwingd/cms-revalidate-nextjs@https://codeload.github.com/ZwingD/cms-revalidate-nextjs/tar.gz/4402cd1':
-    resolution: {tarball: https://codeload.github.com/ZwingD/cms-revalidate-nextjs/tar.gz/4402cd1}
-    version: 0.1.0-dev.0
+  '@zwingd-ce/cms-revalidate-nextjs@https://codeload.github.com/ZwingD/cms-revalidate-nextjs/tar.gz/7fd8d22':
+    resolution: {tarball: https://codeload.github.com/ZwingD/cms-revalidate-nextjs/tar.gz/7fd8d22}
+    version: 0.1.0
     engines: {node: '>=18.17.0'}
     peerDependencies:
       next: '>=14.0.0'
@@ -2259,7 +2259,7 @@ snapshots:
   '@unrs/resolver-binding-win32-x64-msvc@1.12.2':
     optional: true
 
-  '@zwingd/cms-revalidate-nextjs@https://codeload.github.com/ZwingD/cms-revalidate-nextjs/tar.gz/4402cd1(next@15.5.18(react-dom@19.2.6(react@19.2.6))(react@19.2.6))':
+  '@zwingd-ce/cms-revalidate-nextjs@https://codeload.github.com/ZwingD/cms-revalidate-nextjs/tar.gz/7fd8d22(next@15.5.18(react-dom@19.2.6(react@19.2.6))(react@19.2.6))':
     dependencies:
       next: 15.5.18(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
 

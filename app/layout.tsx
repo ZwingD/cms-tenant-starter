@@ -6,7 +6,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Zwingd Tenant Starter",
   description:
-    "Starter Next.js storefront wired to Zwingd CMS via @zwingd/cms-revalidate-nextjs.",
+    "Starter Next.js storefront wired to Zwingd CMS via @zwingd-ce/cms-revalidate-nextjs.",
 };
 
 export default function RootLayout({
@@ -40,7 +40,7 @@ export default function RootLayout({
               href="https://github.com/ZwingD/cms-revalidate-nextjs"
               className="underline"
             >
-              @zwingd/cms-revalidate-nextjs
+              @zwingd-ce/cms-revalidate-nextjs
             </a>
             . Replace this footer with your own.
           </div>

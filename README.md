@@ -63,7 +63,7 @@ You'll customize `layout.tsx`, `page.tsx`, and the blog templates. You probably 
 
 ## How revalidation works under the hood
 
-This starter ships with [`@zwingd/cms-revalidate-nextjs`](https://github.com/ZwingD/cms-revalidate-nextjs) as a dependency. When the CMS fires a webhook to `/api/revalidate`:
+This starter ships with [`@zwingd-ce/cms-revalidate-nextjs`](https://github.com/ZwingD/cms-revalidate-nextjs) as a dependency. When the CMS fires a webhook to `/api/revalidate`:
 
 1. The handler verifies the HMAC signature (rejects with 401 on mismatch)
 2. Validates the 5-minute replay window (rejects with 409 on stale)
@@ -92,7 +92,7 @@ pnpm dev                        # http://localhost:3000
 |---|---|---|
 | `/api/revalidate` returns 401 | HMAC secret mismatch | Compare `CMS_WEBHOOK_SECRET` in Vercel to what you set when registering the webhook. If unsure, rotate by clicking Generate again in the CMS admin + update Vercel env. |
 | `/api/revalidate` returns 409 | Stale webhook timestamp | Clock skew on Vercel runners is normally < 1s. If consistent, increase `replayWindowMs` in `route.ts`. |
-| `/api/revalidate` returns 426 | cms-backend emitting a newer payload schema than this package understands | Upgrade `@zwingd/cms-revalidate-nextjs` to the latest version. |
+| `/api/revalidate` returns 426 | cms-backend emitting a newer payload schema than this package understands | Upgrade `@zwingd-ce/cms-revalidate-nextjs` to the latest version. |
 | `/blog` shows the welcome placeholder forever | `CMS_BLOG_SOURCE=STATIC` (or unset) | Flip to `CMS` in Vercel env vars + redeploy. |
 | Detail page updates after edit, list does not | Cached list HTML predates tag instrumentation | Trigger one manual Vercel redeploy to prime the cache. After that, the `revalidatePath` default catches future edits. |
 | First deploy succeeds but `/api/revalidate` always 500s | `CMS_WEBHOOK_SECRET` is empty | Set it in Vercel env vars and redeploy. |

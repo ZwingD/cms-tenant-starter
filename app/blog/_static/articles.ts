@@ -31,7 +31,7 @@ export const sampleArticles: BlogPost[] = [
     excerpt:
       "On every CMS edit, cms-backend POSTs a signed webhook to /api/revalidate. The handler invalidates both the detail tag and the list tag.",
     contentHtml:
-      "<p>The starter ships with <code>@zwingd/cms-revalidate-nextjs</code>. The handler verifies HMAC, then revalidates the affected tags AND paths. <code>app/blog/page.tsx</code> also has <code>export const revalidate = 30</code> as a worst-case ISR backstop.</p>",
+      "<p>The starter ships with <code>@zwingd-ce/cms-revalidate-nextjs</code>. The handler verifies HMAC, then revalidates the affected tags AND paths. <code>app/blog/page.tsx</code> also has <code>export const revalidate = 30</code> as a worst-case ISR backstop.</p>",
     publishedAt: new Date().toISOString(),
     author: { name: "Zwingd" },
   },

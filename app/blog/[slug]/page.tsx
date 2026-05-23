@@ -8,7 +8,7 @@ interface Params {
 }
 
 // ISR backstop for detail pages mirrors the index. The per-slug tag
-// (emitted by @zwingd/cms-revalidate-nextjs on every blog-post webhook)
+// (emitted by @zwingd-ce/cms-revalidate-nextjs on every blog-post webhook)
 // is the primary freshness mechanism; this is the worst-case bound.
 export const revalidate = 30;
 
