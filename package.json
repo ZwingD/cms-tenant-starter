@@ -1,6 +1,6 @@
 {
   "name": "cms-tenant-starter",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Starter Next.js 15 site for tenants consuming Zwingd CMS — deploys to Vercel with three env vars.",
   "scripts": {

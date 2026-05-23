@@ -4,24 +4,23 @@ Next.js 15 starter that's pre-wired to consume Zwingd CMS content and revalidate
 
 ## ▶ Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FZwingD%2Fcms-tenant-starter&env=CMS_BASE,CMS_TENANT_REALM,CMS_WEBHOOK_SECRET,CMS_BLOG_SOURCE&envDescription=Connect%20to%20your%20Zwingd%20CMS%20tenant.%20See%20README%20for%20each%20variable.&envLink=https%3A%2F%2Fgithub.com%2FZwingD%2Fcms-tenant-starter%23environment-variables&project-name=tenant-site)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FZwingD%2Fcms-tenant-starter&env=CMS_BASE,CMS_TENANT_REALM,CMS_WEBHOOK_SECRET&envDescription=Connect%20to%20your%20Zwingd%20CMS%20tenant.%20See%20README%20for%20each%20variable.&envLink=https%3A%2F%2Fgithub.com%2FZwingD%2Fcms-tenant-starter%23environment-variables&project-name=tenant-site)
 
-Click the button → sign in to Vercel → it'll clone this repo into your GitHub org, prompt you for the four env vars (see below), build, and deploy.
+Click the button → sign in to Vercel → it'll clone this repo into your GitHub org, prompt you for the three env vars (see below), build, and deploy.
 
-After deploy, you'll have a live storefront serving **static placeholder content**. To wire up live CMS content, follow the **Connect to CMS** section.
+After deploy, you'll have a live storefront connected to your Zwingd CMS tenant. If the tenant has no posts yet, the `/blog` index renders a friendly empty state with a link to the CMS admin — publish your first post and it appears live (within ~30s via the webhook below).
 
 ## Quick start (after deploy)
 
-### 1. Set the four env vars in Vercel
+### 1. Set the three env vars in Vercel
 
-If you missed any during deploy, set them in **Project Settings → Environment Variables**. All four are server-side (no `NEXT_PUBLIC_` prefix).
+If you missed any during deploy, set them in **Project Settings → Environment Variables**. All three are server-side (no `NEXT_PUBLIC_` prefix).
 
 | Variable | Value | Where to get it |
 |---|---|---|
 | `CMS_BASE` | `https://cms-api-dev.zwingd.com` (dev) or `https://cms-api.zwingd.com` (prod) | Zwingd documentation |
 | `CMS_TENANT_REALM` | Your tenant slug (e.g. `techademy`) | Zwingd assigned this when your tenant was provisioned |
 | `CMS_WEBHOOK_SECRET` | 32-byte hex string | Generated in the Zwingd CMS admin — see next section |
-| `CMS_BLOG_SOURCE` | `STATIC` (default) or `CMS` | Leave as `STATIC` until step 3 below succeeds |
 
 ### 2. Register the webhook in Zwingd CMS admin
 
@@ -32,14 +31,7 @@ If you missed any during deploy, set them in **Project Settings → Environment 
 5. **Events**: tick `content.published`, `content.unpublished`, `content.deleted`
 6. Click **Create Webhook**
 
-### 3. Flip to live CMS content
-
-1. In Vercel, change `CMS_BLOG_SOURCE` from `STATIC` to `CMS`
-2. Redeploy your project (or trigger a deploy from your Git provider)
-3. Edit a published post in the Zwingd CMS admin
-4. Within ~30 seconds, the edit should appear on your `/blog` index and detail pages
-
-If propagation doesn't happen within ~30s, see [troubleshooting](#troubleshooting).
+Edits in the Zwingd CMS admin propagate to your storefront within ~30 seconds. If propagation doesn't happen, see [troubleshooting](#troubleshooting).
 
 ## What's in the repo
 
@@ -51,11 +43,11 @@ app/
 ├── blog/
 │   ├── page.tsx            # Blog index — revalidate=30, list-tag wired
 │   ├── [slug]/page.tsx     # Blog detail — revalidate=30, detail-tag wired
-│   └── _static/articles.ts # Fallback sample posts for STATIC mode
+│   └── _static/_demo-articles.ts # Local-dev demo fixtures — NOT imported at runtime
 └── api/revalidate/route.ts # 3-line webhook handler via the package
 lib/cms/
-├── env.ts                  # Typed reads of the 4 env vars
-├── source.ts               # Reader: switches CMS vs STATIC, attaches Next tags
+├── env.ts                  # Typed reads of the 3 env vars
+├── source.ts               # Reader: always fetches from CMS, returns [] on error/empty
 └── types.ts                # BlogPost shape
 ```
 
@@ -93,7 +85,7 @@ pnpm dev                        # http://localhost:3000
 | `/api/revalidate` returns 401 | HMAC secret mismatch | Compare `CMS_WEBHOOK_SECRET` in Vercel to what you set when registering the webhook. If unsure, rotate by clicking Generate again in the CMS admin + update Vercel env. |
 | `/api/revalidate` returns 409 | Stale webhook timestamp | Clock skew on Vercel runners is normally < 1s. If consistent, increase `replayWindowMs` in `route.ts`. |
 | `/api/revalidate` returns 426 | cms-backend emitting a newer payload schema than this package understands | Upgrade `@zwingd-ce/cms-revalidate-nextjs` to the latest version. |
-| `/blog` shows the welcome placeholder forever | `CMS_BLOG_SOURCE=STATIC` (or unset) | Flip to `CMS` in Vercel env vars + redeploy. |
+| `/blog` shows the "No posts yet" empty state but you've published posts | Most likely `CMS_BASE` / `CMS_TENANT_REALM` mismatch (the reader treats fetch errors as empty) | Verify the env vars match your CMS admin's tenant + base URL. Hit `${CMS_BASE}/api/v1/blog` with header `realm: <CMS_TENANT_REALM>` from your shell to confirm a non-empty `items` array. |
 | Detail page updates after edit, list does not | Cached list HTML predates tag instrumentation | Trigger one manual Vercel redeploy to prime the cache. After that, the `revalidatePath` default catches future edits. |
 | First deploy succeeds but `/api/revalidate` always 500s | `CMS_WEBHOOK_SECRET` is empty | Set it in Vercel env vars and redeploy. |
 

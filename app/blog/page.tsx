@@ -19,7 +19,16 @@ export default async function BlogIndexPage() {
     <section className="py-8">
       <h1 className="mb-6 text-3xl font-semibold">Blog</h1>
       {posts.length === 0 ? (
-        <p className="text-slate-600">No posts yet.</p>
+        <div className="rounded border border-slate-200 bg-slate-50 p-6 text-slate-700">
+          <p className="text-lg font-semibold">No posts yet.</p>
+          <p className="mt-2 text-sm text-slate-600">
+            Author your first post in the Zwingd CMS admin to see it here.{" "}
+            {/* Update href to your tenant's cms-admin URL when you fork. */}
+            <Link href="#" className="text-blue-600 underline">
+              Open CMS admin →
+            </Link>
+          </p>
+        </div>
       ) : (
         <ul className="space-y-6">
           {posts.map((p) => (

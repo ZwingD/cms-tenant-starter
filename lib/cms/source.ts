@@ -1,7 +1,8 @@
 // lib/cms/source.ts
 /**
- * Blog reader — fetches from cms-backend OR falls back to baked-in
- * sample articles depending on `CMS_BLOG_SOURCE`.
+ * Blog reader — always fetches from cms-backend (CMS is the only source of
+ * truth post-v0.2.0). On fetch error or empty result, returns `[]` so the
+ * page renders an honest empty state instead of placeholder content.
  *
  * The CMS branch attaches `next: { tags: [...] }` to every fetch — that's
  * what makes tag-based revalidation work end-to-end. Without those tags,
@@ -9,38 +10,41 @@
  * invalidate (this was the L-10 race we resolved during the feezy.one
  * cutover — see the package README for the failure-mode table).
  */
-import { CMS_BASE, CMS_TENANT_REALM, blogSource } from "./env";
+import { CMS_BASE, CMS_TENANT_REALM } from "./env";
 import type { BlogPost } from "./types";
-import { sampleArticles } from "../../app/blog/_static/articles";
 
 const realm = CMS_TENANT_REALM;
 const listTag = `${realm}:blog-post:list`;
 const detailTag = (slug: string) => `${realm}:blog-post:${slug}`;
 
 async function cmsFetch<T>(path: string, tags: string[]): Promise<T | null> {
-  const url = `${CMS_BASE}${path}`;
-  const res = await fetch(url, {
-    headers: { realm, accept: "application/json" },
-    next: { tags },
-  });
-  if (!res.ok) return null;
-  return (await res.json()) as T;
+  if (!CMS_BASE) return null;
+  try {
+    const url = `${CMS_BASE}${path}`;
+    const res = await fetch(url, {
+      headers: { realm, accept: "application/json" },
+      next: { tags },
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    // CMS unreachable (DNS, network, misconfigured CMS_BASE). The empty
+    // state in `app/blog/page.tsx` handles both "no posts" and
+    // "CMS-unreachable" identically — intentional UX.
+    return null;
+  }
 }
 
 export async function getBlogIndex(): Promise<BlogPost[]> {
-  if (blogSource() === "STATIC") return sampleArticles;
   const data = await cmsFetch<{ items?: BlogPost[] } | BlogPost[]>(
     "/api/v1/blog?limit=20&order=publishedAt:desc",
     [listTag],
   );
-  if (!data) return sampleArticles; // graceful fallback if CMS is down
+  if (!data) return [];
   return Array.isArray(data) ? data : (data.items ?? []);
 }
 
 export async function getBlogPost(slug: string): Promise<BlogPost | null> {
-  if (blogSource() === "STATIC") {
-    return sampleArticles.find((a) => a.slug === slug) ?? null;
-  }
   return await cmsFetch<BlogPost>(`/api/v1/blog/${slug}`, [
     detailTag(slug),
     listTag,
