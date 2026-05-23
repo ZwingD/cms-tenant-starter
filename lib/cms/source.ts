@@ -36,12 +36,15 @@ async function cmsFetch<T>(path: string, tags: string[]): Promise<T | null> {
 }
 
 export async function getBlogIndex(): Promise<BlogPost[]> {
-  const data = await cmsFetch<{ items?: BlogPost[] } | BlogPost[]>(
-    "/api/v1/blog?limit=20&order=publishedAt:desc",
-    [listTag],
-  );
+  // cms-backend delivery returns `{ data: [...], meta: { total } }` (Strapi
+  // v5 flat shape). Older docs / a different mapper may expose `items`.
+  // Tolerant of both, plus the raw-array fallback.
+  const data = await cmsFetch<
+    { data?: BlogPost[]; items?: BlogPost[] } | BlogPost[]
+  >("/api/v1/blog?limit=20&order=publishedAt:desc", [listTag]);
   if (!data) return [];
-  return Array.isArray(data) ? data : (data.items ?? []);
+  if (Array.isArray(data)) return data;
+  return data.data ?? data.items ?? [];
 }
 
 export async function getBlogPost(slug: string): Promise<BlogPost | null> {
