@@ -11,7 +11,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@zwingd-ce/cms-revalidate-nextjs": "^0.1.0",
+    "@zwingd-ce/cms-revalidate-nextjs": "^0.2.2",
     "next": "^15.1.11",
     "react": "^19.0.4",
     "react-dom": "^19.0.4"
