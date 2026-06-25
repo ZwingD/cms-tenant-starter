@@ -3,12 +3,17 @@
  * Read a course landing by code, normalize it to archetype sections, and fall
  * back to a committed fixture when the CMS yields nothing renderable.
  *
- * P3 reality: native archetype delivery isn't wired (P4/P7), so the live path
- * returns the LEGACY envelope whose sections carry `type:` (not `archetype:`) -
- * `isArchetypeShaped` rejects that and the fixture wins. Once P4 serves archetype
- * payloads, the same code path goes live with no change here.
+ * P4: points at the native archetype delivery endpoint
+ * (`/api/v1/archetype-landings/<realm>/<code>`), which serves `{code, sections}`
+ * with each section `archetype:`-keyed and media resolved to `{url, alt}`. When
+ * the CMS has published archetype content for the realm+code, that renders live;
+ * otherwise the endpoint 404s (or yields a non-archetype body), `isArchetypeShaped`
+ * fails, and the committed fixture takes over (offline / not-yet-authored).
  *
- * Introduced: genericization P3.
+ * Realm comes from `CMS_TENANT_REALM` (env) - no hardcoded realm, so onboarding
+ * the next tenant is an env change, not a code change.
+ *
+ * Introduced: genericization P3; live archetype delivery wired in P4.
  */
 import { CMS_TENANT_REALM } from "../env";
 import { cmsFetch } from "../core/cms-fetch";
@@ -33,7 +38,7 @@ export async function fetchCourseLanding(
   { fallback }: { fallback: CourseLandingView },
 ): Promise<CourseLandingView> {
   const raw = await cmsFetch<unknown>(
-    `/api/v1/course-landings/by-code/${realm}/${code}`,
+    `/api/v1/archetype-landings/${realm}/${code}`,
     { realm, tags: [detailTag(realm, "course-landing", code)] },
   );
   const sections = toNativeSections(raw);
