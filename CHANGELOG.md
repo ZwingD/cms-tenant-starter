@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.3.0 — 2026-06-25
+
+### Changes
+
+- **Course-landing rendering from the generic archetype model.** New
+  `/courses/[code]` route renders a page built entirely from generic
+  `archetype` + `inline.<variant>` sections through an archetype+variant-keyed
+  renderer registry (`components/sections`) — no per-page templates. Unknown
+  archetypes/variants render an `UnknownSection` placeholder instead of
+  crashing the page.
+- **cms-client-shaped read layer.** Added `lib/cms/core` (`cmsFetch` with
+  realm header + cache tags + timeout + null-on-error; `envelope` Strapi-v4 ↔
+  native adapter; shared `listTag`/`detailTag`) and `lib/cms/course-landing`
+  (archetype view models + `fetchCourseLanding`). Structured for later
+  extraction into the shared `@zwingd-ce/cms-client` package.
+- `lib/cms/source.ts` (blog reader) refactored onto `core/` — same signatures,
+  same tag keys, blog behavior unchanged.
+- **Distinct reference theme** ("Meridian Institute": deep navy + gold accent +
+  serif display face) via `tailwind.config.ts` semantic tokens — re-skin the
+  whole storefront with a token edit, no component changes.
+- A "Courses" nav link added to the layout.
+
+### Notes
+
+- **Fixture-driven pending P4.** `fetchCourseLanding` consumes a live
+  archetype-shaped delivery body when served, but the generic delivery endpoint
+  is not wired yet (P4 in the section-model genericization PRD). Until then
+  `/courses/[code]` falls back to the committed reference fixture; the code path
+  goes live unchanged once P4 serves archetype payloads.
+
 ## 0.2.0 — 2026-05-23
 
 ### Breaking changes

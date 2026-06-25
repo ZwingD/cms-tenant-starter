@@ -29,6 +29,12 @@ export default function RootLayout({
               <Link href="/blog" className="hover:underline">
                 Blog
               </Link>
+              <Link
+                href="/courses/value-investing-101"
+                className="hover:underline"
+              >
+                Courses
+              </Link>
             </nav>
           </div>
         </header>

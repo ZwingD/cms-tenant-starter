@@ -10,30 +10,12 @@
  * invalidate (this was the L-10 race we resolved during the feezy.one
  * cutover — see the package README for the failure-mode table).
  */
-import { CMS_BASE, CMS_TENANT_REALM } from "./env";
+import { CMS_TENANT_REALM } from "./env";
+import { cmsFetch } from "./core/cms-fetch";
+import { listTag, detailTag } from "./core/tags";
 import type { BlogPost } from "./types";
 
 const realm = CMS_TENANT_REALM;
-const listTag = `${realm}:blog-post:list`;
-const detailTag = (slug: string) => `${realm}:blog-post:${slug}`;
-
-async function cmsFetch<T>(path: string, tags: string[]): Promise<T | null> {
-  if (!CMS_BASE) return null;
-  try {
-    const url = `${CMS_BASE}${path}`;
-    const res = await fetch(url, {
-      headers: { realm, accept: "application/json" },
-      next: { tags },
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch {
-    // CMS unreachable (DNS, network, misconfigured CMS_BASE). The empty
-    // state in `app/blog/page.tsx` handles both "no posts" and
-    // "CMS-unreachable" identically — intentional UX.
-    return null;
-  }
-}
 
 export async function getBlogIndex(): Promise<BlogPost[]> {
   // cms-backend delivery returns `{ data: [...], meta: { total } }` (Strapi
@@ -41,15 +23,20 @@ export async function getBlogIndex(): Promise<BlogPost[]> {
   // Tolerant of both, plus the raw-array fallback.
   const data = await cmsFetch<
     { data?: BlogPost[]; items?: BlogPost[] } | BlogPost[]
-  >("/api/v1/blog?limit=20&order=publishedAt:desc", [listTag]);
+  >("/api/v1/blog?limit=20&order=publishedAt:desc", {
+    realm,
+    tags: [listTag(realm, "blog-post")],
+  });
   if (!data) return [];
   if (Array.isArray(data)) return data;
   return data.data ?? data.items ?? [];
 }
 
 export async function getBlogPost(slug: string): Promise<BlogPost | null> {
-  return await cmsFetch<BlogPost>(`/api/v1/blog/${slug}`, [
-    detailTag(slug),
-    listTag,
-  ]);
+  // Pass BOTH the detail tag AND the list tag so a post edit revalidates the
+  // index too (the dual-tag contract @zwingd-ce/cms-revalidate-nextjs relies on).
+  return await cmsFetch<BlogPost>(`/api/v1/blog/${slug}`, {
+    realm,
+    tags: [detailTag(realm, "blog-post", slug), listTag(realm, "blog-post")],
+  });
 }

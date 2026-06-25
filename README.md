@@ -39,19 +39,33 @@ Edits in the Zwingd CMS admin propagate to your storefront within ~30 seconds. I
 app/
 ├── layout.tsx              # Header + footer shell — replace with your design
 ├── page.tsx                # Home page — replace with your hero
-├── globals.css             # Tailwind directives
+├── globals.css             # Tailwind directives + base theme tokens
 ├── blog/
 │   ├── page.tsx            # Blog index — revalidate=30, list-tag wired
 │   ├── [slug]/page.tsx     # Blog detail — revalidate=30, detail-tag wired
 │   └── _static/_demo-articles.ts # Local-dev demo fixtures — NOT imported at runtime
+├── courses/[code]/page.tsx # Course landing — renders generic archetype sections
 └── api/revalidate/route.ts # 3-line webhook handler via the package
+components/sections/        # Renderer registry: archetype/variant → React component
+├── registry.tsx            # SECTION_REGISTRY + <SectionList> (crash-proof)
+├── resolve.ts              # resolveRendererKey(section) → registry key | unknown
+├── UnknownSection.tsx      # Fallback for unregistered archetypes/variants
+└── Hero|Collection|People|StatBand|DynList|Inline.tsx # Themed section renderers
 lib/cms/
 ├── env.ts                  # Typed reads of the 3 env vars
-├── source.ts               # Reader: always fetches from CMS, returns [] on error/empty
-└── types.ts                # BlogPost shape
+├── source.ts               # Blog reader (now built on core/), returns [] on error/empty
+├── types.ts                # BlogPost shape
+├── core/                   # cms-client-shaped read layer (extraction target)
+│   ├── cms-fetch.ts        # cmsFetch<T>: realm header, tags, timeout, null-on-error
+│   ├── envelope.ts         # toNativeSections: Strapi-v4 ↔ native adapter (tolerant)
+│   └── tags.ts             # listTag / detailTag — shared cache-tag contract
+└── course-landing/         # Course-landing read path
+    ├── types.ts            # Archetype view models (Hero/Collection/People/…)
+    ├── fetch-course-landing.ts # Live archetype delivery, static-fixture fallback
+    └── _fixtures/reference-course.ts # Reference "Meridian Institute" course
 ```
 
-You'll customize `layout.tsx`, `page.tsx`, and the blog templates. You probably won't need to touch the package handler — it's stable.
+You'll customize `layout.tsx`, `page.tsx`, the blog templates, and the `components/sections/*` renderers (re-theme via `tailwind.config.ts` tokens — no component changes needed). You probably won't need to touch the package handler — it's stable.
 
 ## How revalidation works under the hood
 
@@ -65,6 +79,40 @@ This starter ships with [`@zwingd-ce/cms-revalidate-nextjs`](https://github.com/
 6. Returns 200
 
 The blog index and detail pages both have `export const revalidate = 30` as a worst-case ISR backstop, so even if a webhook drops or fires against stale cache, the longest any user sees stale content is ~30 seconds.
+
+## Course landings (archetype rendering)
+
+Beyond blog, this starter renders **course-landing pages from Zwingd's generic
+section model** — a page is a list of `archetype` sections (`hero`,
+`collection`, `people`, `statband`, `dynlist`) plus `inline.<variant>` blocks,
+each carrying a typed payload. `/courses/[code]` fetches a landing by code and
+renders its sections through a registry — no per-page templates.
+
+How the pieces fit:
+
+- **Read layer** (`lib/cms/core` + `lib/cms/course-landing`) — `cmsFetch` does
+  the realm-scoped, tag-tagged, timeout-bounded fetch (returns `null`, never
+  throws); `envelope.toNativeSections` tolerantly maps either a Strapi-v4
+  envelope or a native one to archetype objects (unknown archetypes pass
+  through untouched). This layer is shaped for later extraction into the shared
+  `@zwingd-ce/cms-client` package — see
+  [`.workspace/docs/cms-client-package-scope.md`](../.workspace/docs/cms-client-package-scope.md).
+- **Renderer registry** (`components/sections`) — `<SectionList>` resolves each
+  section by `archetype` (or `inline.<variant>`) to a themed component;
+  anything unregistered renders `UnknownSection` instead of crashing the page.
+- **Theme** (`tailwind.config.ts` + `app/globals.css`) — the reference site is
+  a deliberately non-default identity (deep navy + gold accent + a serif
+  display face). Re-skinning is a token edit; the section components never
+  hardcode colors.
+
+**Fixture now, live delivery at P4.** `fetchCourseLanding` already consumes a
+live archetype-shaped delivery body when one is served, but the generic
+delivery endpoint is not wired yet (tracked as P4 in the
+[section-model genericization PRD](../cms-backend/docs/prd/2026-06-25-section-model-genericization.md)).
+Until then the `/courses/[code]` route falls back to the committed reference
+fixture (`lib/cms/course-landing/_fixtures/reference-course.ts`) — the same
+code path goes live unchanged once P4 serves archetype payloads. Add a
+`course-landing` tag/path mapping in `route.ts` (see below) when you wire it.
 
 ## Adding more content types
 
