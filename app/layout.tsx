@@ -1,46 +1,28 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import Link from "next/link";
 import "./globals.css";
+import NavMegaMenu from "@/components/navigation/NavMegaMenu";
+import { fetchNavigation } from "@/lib/cms/navigation/fetch-navigation";
 
 export const metadata: Metadata = {
-  title: "Zwingd Tenant Starter",
+  title: "Northwind Academy",
   description:
-    "Starter Next.js storefront wired to Zwingd CMS via @zwingd-ce/cms-revalidate-nextjs.",
+    "Northwind Academy - a Zwingd CMS reference storefront (navigation mega-menu north-star demo).",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const nav = await fetchNavigation("header");
   return (
     <html lang="en">
       <body>
-        <header className="border-b border-slate-200">
-          <div className="mx-auto flex max-w-3xl items-center justify-between p-6">
-            <Link href="/" className="text-lg font-semibold">
-              Your Tenant Site
-            </Link>
-            <nav className="flex gap-4 text-sm">
-              <Link href="/" className="hover:underline">
-                Home
-              </Link>
-              <Link href="/blog" className="hover:underline">
-                Blog
-              </Link>
-              <Link
-                href="/courses/value-investing-101"
-                className="hover:underline"
-              >
-                Courses
-              </Link>
-            </nav>
-          </div>
-        </header>
+        <NavMegaMenu nav={nav} />
         <main className="mx-auto max-w-3xl p-6">{children}</main>
-        <footer className="mt-16 border-t border-slate-200">
-          <div className="mx-auto max-w-3xl p-6 text-xs text-slate-500">
+        <footer className="mt-16 border-t border-border">
+          <div className="mx-auto max-w-3xl p-6 text-xs text-muted-foreground">
             Powered by{" "}
             <a
               href="https://github.com/ZwingD/cms-revalidate-nextjs"
@@ -48,7 +30,7 @@ export default function RootLayout({
             >
               @zwingd-ce/cms-revalidate-nextjs
             </a>
-            . Replace this footer with your own.
+            .
           </div>
         </footer>
       </body>
