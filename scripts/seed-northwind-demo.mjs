@@ -77,7 +77,12 @@ if (!secret || secret === "None") fail(`SSM param ${SSM_PARAM} is empty`);
 const JWT = mintJwt(secret);
 
 // --- admin API helper (fail-loud on any non-OK) ---
-async function api(method, path, body) {
+/**
+ * @param {number[]} [tolerate] HTTP statuses to return instead of aborting, as
+ *   `{ __status }`. Fail-loud stays the DEFAULT -- opt in per call site, and
+ *   only where the caller can explain what the status means and carry on.
+ */
+async function api(method, path, body, tolerate = []) {
   const res = await fetch(`${CMS_BASE}${path}`, {
     method,
     headers: {
@@ -95,6 +100,7 @@ async function api(method, path, body) {
     json = text;
   }
   if (!res.ok) {
+    if (tolerate.includes(res.status)) return { __status: res.status };
     fail(
       `${method} ${path} -> ${res.status}: ${typeof json === "string" ? json : JSON.stringify(json)}`,
     );
@@ -142,7 +148,21 @@ async function ensureCourse(categoryId, c) {
     await api("PUT", `/api/admin/course-landings/${existing.id}`, body);
     id = existing.id;
   } else {
-    id = (await api("POST", "/api/admin/course-landings", body)).id;
+    // A 409 here means the slug is reserved by a row this list cannot see --
+    // in practice a SOFT-DELETED course-landing, which stays in the unique
+    // index while being filtered out of every admin list. list-then-branch is
+    // structurally blind to that, so the create collides with a row it had no
+    // way to find. Warn loudly and carry on: the courses are demo garnish, and
+    // aborting here would take the nav + footer authoring down with them.
+    const created = await api("POST", "/api/admin/course-landings", body, [409]);
+    if (created?.__status === 409) {
+      console.warn(
+        `[seed] WARN: course ${c.code} conflicts with a hidden (likely soft-deleted) row -- skipping. ` +
+          `The demo CatalogList will be short one course until that row is purged or its slug freed.`,
+      );
+      return null;
+    }
+    id = created.id;
   }
   await api("POST", `/api/admin/course-landings/${id}/publish`, {});
   return id;
@@ -183,14 +203,87 @@ async function putNav() {
   });
 }
 
+// --- Nav footer (link columns; no mega-menu -- the footer is a link list) ---
+async function putFooterNav() {
+  await api("PUT", "/api/admin/navigation/footer", {
+    items: [
+      {
+        label: "Programs",
+        url: "#",
+        children: [
+          { label: "All Courses", url: "/courses" },
+          { label: "Certifications", url: "/certifications" },
+        ],
+      },
+      {
+        label: "Company",
+        url: "#",
+        children: [
+          { label: "About Northwind", url: "/about" },
+          { label: "Careers", url: "/careers" },
+        ],
+      },
+      {
+        label: "Support",
+        url: "#",
+        children: [
+          { label: "Help Centre", url: "/help" },
+          { label: "Contact", url: "/contact" },
+        ],
+      },
+    ],
+  });
+}
+
+// --- Footer chrome (social + legal + copyright on the site-settings blob) ---
+async function putFooterChrome() {
+  // READ-THEN-WRITE, not a blind PUT: UpdateSiteSettingsDto.siteName is
+  // @IsString() @IsNotEmpty(), so a body without it 422s. The GET also
+  // lazy-upserts the settings row for a net-new realm (SiteSettingsService.find),
+  // so this works on a realm that has never had settings saved.
+  const current = await api("GET", "/api/admin/site-settings");
+  const siteName = current?.siteName || "Northwind Academy";
+
+  // Send ONLY siteName + footerConfig. The server deep-merges chrome blobs
+  // (deepMergePreserve in site-settings.service.ts), so omitting headerConfig /
+  // lpHeaderConfig leaves them untouched rather than wiping them.
+  await api("PUT", "/api/admin/site-settings", {
+    siteName,
+    footerConfig: {
+      // REQUIRED even though the logo slot is deferred: FooterConfigSchema
+      // declares `logo: MediaRefSchema.nullable()` -- nullable, but NOT
+      // optional, so omitting the key entirely fails validation with
+      // "expected object, received undefined". Explicit null is how you say
+      // "no logo"; leaving it out is a 400.
+      logo: null,
+      // `platform` must be one of the SocialLinkSchema enum values and `href`
+      // must be an ABSOLUTE url (z.url()) -- one bad entry 400s the whole PUT.
+      socialLinks: [
+        { platform: "linkedin", href: "https://www.linkedin.com/company/northwind-academy" },
+        { platform: "youtube", href: "https://www.youtube.com/@northwind-academy" },
+      ],
+      // legalLinks use LinkSchema, which deliberately allows relative paths.
+      legalLinks: [
+        { label: "Privacy Policy", href: "/privacy", openInNewTab: false },
+        { label: "Terms of Service", href: "/terms", openInNewTab: false },
+      ],
+      copyright: `(c) ${new Date().getFullYear()} Northwind Academy`,
+    },
+  });
+}
+
 (async () => {
   console.log(`[seed] realm=${REALM} base=${CMS_BASE}`);
   const categoryId = await ensureCategory();
   console.log(`[seed] category ${CAT_SLUG} -> ${categoryId}`);
   for (const c of COURSES) {
     const id = await ensureCourse(categoryId, c);
-    console.log(`[seed] course ${c.code} -> ${id} (published)`);
+    if (id) console.log(`[seed] course ${c.code} -> ${id} (published)`);
   }
   await putNav();
-  console.log("[seed] nav header authored. Done.");
+  console.log("[seed] nav header authored.");
+  await putFooterNav();
+  console.log("[seed] nav footer authored (3 link columns).");
+  await putFooterChrome();
+  console.log("[seed] footer chrome authored (social + legal + copyright). Done.");
 })().catch((e) => fail(e?.stack || String(e)));

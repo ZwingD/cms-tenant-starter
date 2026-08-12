@@ -12,7 +12,12 @@ const mockedFetch = vi.mocked(cmsFetch);
 describe("fetchNavigation", () => {
   beforeEach(() => mockedFetch.mockReset());
 
-  it("fetches the location's nav with the realm + a navigation list tag, and passes the result through", async () => {
+  // `navigation` is a SINGLETON on the write side (cms-revalidate-nextjs
+  // computeTags.ts), so the webhook busts `${realm}:navigation` +
+  // `${realm}:layout` -- never `${realm}:navigation:list`. This test previously
+  // asserted the `:list` tag, which codified a read/write tag mismatch: the
+  // header nav never revalidated on a navigation edit.
+  it("fetches the location's nav with the realm + the singleton and layout tags, and passes the result through", async () => {
     const nav = { location: "HEADER", items: [] };
     mockedFetch.mockResolvedValue(nav);
 
@@ -20,7 +25,7 @@ describe("fetchNavigation", () => {
 
     expect(mockedFetch).toHaveBeenCalledWith("/api/v1/navigation/header", {
       realm: "northwind",
-      tags: ["northwind:navigation:list"],
+      tags: ["northwind:navigation", "northwind:layout"],
     });
     expect(result).toBe(nav);
   });

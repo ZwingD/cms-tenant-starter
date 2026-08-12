@@ -37,7 +37,9 @@ Edits in the Zwingd CMS admin propagate to your storefront within ~30 seconds. I
 
 ```
 app/
-├── layout.tsx              # Header + footer shell — replace with your design
+├── layout.tsx              # Chrome shell — server-fetches header nav, footer nav
+│                           #   and footer chrome in parallel, renders <Footer>.
+│                           #   Restyle it; don't replace the CMS wiring.
 ├── page.tsx                # Home page — replace with your hero
 ├── globals.css             # Tailwind directives + base theme tokens
 ├── blog/
@@ -46,6 +48,8 @@ app/
 │   └── _static/_demo-articles.ts # Local-dev demo fixtures — NOT imported at runtime
 ├── courses/[code]/page.tsx # Course landing — renders generic archetype sections
 └── api/revalidate/route.ts # 3-line webhook handler via the package
+components/layout/
+└── Footer.tsx              # CMS-driven footer — props in, JSX out, no fetching
 components/sections/        # Renderer registry: archetype/variant → React component
 ├── registry.tsx            # SECTION_REGISTRY + <SectionList> (crash-proof)
 ├── resolve.ts              # resolveRendererKey(section) → registry key | unknown
@@ -113,6 +117,43 @@ Until then the `/courses/[code]` route falls back to the committed reference
 fixture (`lib/cms/course-landing/_fixtures/reference-course.ts`) — the same
 code path goes live unchanged once P4 serves archetype payloads. Add a
 `course-landing` tag/path mapping in `route.ts` (see below) when you wire it.
+
+## The footer is CMS-driven
+
+The footer renders entirely from CMS configuration — no code change and no
+deploy to change a link. It reads two surfaces, both server-side:
+
+| Surface | Endpoint | What it supplies |
+|---|---|---|
+| Footer link columns | `GET /api/v1/navigation/footer` | One column per nav item: `label` is the heading, `children[]` the links |
+| Footer chrome | `GET /api/v1/site-chrome/footer` | `socialLinks[]`, `legalLinks[]`, `copyright` |
+
+Author them in the Zwingd CMS admin under **Navigation → Footer** and
+**Site Settings → Footer**, or run `node scripts/seed-northwind-demo.mjs` to
+populate the `northwind` demo realm with a working example.
+
+**Empty slots render nothing.** A tenant that uses only link columns gets only
+link columns — no empty containers and no orphan separators. If the CMS is
+unreachable, the footer is omitted entirely and the rest of the page is
+unaffected. The one exception is `copyright`: an authored-but-blank value falls
+back to `© <year>`, which is the platform convention `FooterConfigSchema`
+assumes (it allows `""` precisely because consumers fall back).
+
+**Deliberately not consumed:** `logo`, `offices[]` and `CopyRightInfo`. The
+first two are deferred per the
+[PRD](../cms-backend/docs/prd/2026-08-12-platform-footer-tenant-onboarding.md);
+`CopyRightInfo` is raw HTML that needs a sanitization decision and ships with
+the editorial-review-gating work. Note that `logo` must still be sent as
+explicit `null` on a `PUT` — `FooterConfigSchema` declares it nullable but not
+optional, so omitting the key is a 400.
+
+**Cache tags:** both footer reads subscribe to singleton tags
+(`${realm}:site-settings` / `${realm}:navigation`, plus `${realm}:layout`) —
+never `:list`. `site-settings` and `navigation` are singletons on the write
+side, so a `:list` tag would never be busted and the footer would go stale
+permanently. Use `singletonTag()` / `layoutTag()` from `lib/cms/core/tags.ts`
+for any one-per-realm surface; `listTag()` / `detailTag()` are for slug-bearing
+content only.
 
 ## Adding more content types
 

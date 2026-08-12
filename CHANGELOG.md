@@ -1,5 +1,43 @@
 # Changelog
 
+## Unreleased
+
+### Changes
+
+- **CMS-driven footer.** `app/layout.tsx` now server-fetches `Navigation(FOOTER)`
+  and the site-chrome footer blob alongside the header nav (one parallel
+  `Promise.all`) and renders `components/layout/Footer.tsx`. The hardcoded
+  "Powered by" stub is gone. Link columns, social links, legal links and
+  copyright all come from CMS configuration; every slot is independently
+  conditional, so an unused slot renders nothing rather than an empty
+  container. New reader at `lib/cms/site-chrome/`.
+
+### Fixes
+
+- **A cold `next build` could silently ship a page with no footer.** `cmsFetch`
+  applied one flat 2000ms abort budget in every phase. That budget is right at
+  request time (a user is waiting, so a slow CMS must never hang the page) but
+  wrong at build time, where nobody is waiting and giving up early bakes missing
+  content into a static artifact served to everyone until something revalidates
+  it. A cold TLS handshake to the CMS measured 2.73s against that 2000ms budget,
+  so a build would prerender a chrome-less page while a rebuild of the same
+  commit would not — passing locally and failing on the deploy that matters. The
+  budget is now phase-aware (`REQUEST_TIMEOUT_MS` 2s serving traffic,
+  `BUILD_TIMEOUT_MS` 15s during `next build`, explicit caller values still win),
+  and **every** degradation now logs a warning naming the path, phase,
+  consequence, reason and elapsed time instead of returning `null` in silence.
+  Returning `null` is still the contract — the storefront survives a CMS outage —
+  it is just no longer invisible.
+
+- **Header navigation never revalidated.** `fetchNavigation` subscribed to
+  `${realm}:navigation:list`, but `navigation` is a *singleton* on the write
+  side — `@zwingd-ce/cms-revalidate-nextjs` busts `${realm}:navigation` and
+  `${realm}:layout`, never a `:list` tag. The read tag matched nothing the
+  webhook emits, so a navigation edit never invalidated the cached header. Adds
+  `singletonTag()` / `layoutTag()` to `lib/cms/core/tags.ts` and moves the nav
+  and footer reads onto them. (The existing test asserted the wrong tag and had
+  codified the bug; the README already documented the correct contract.)
+
 ## 0.3.0 — 2026-06-25
 
 ### Changes
